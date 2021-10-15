@@ -5,6 +5,8 @@ import CubeProgrammer_API
 
 x = CubeProgrammer_API.checkDeviceConnection2()
 
+CubeProgrammer_API.init()
+
 print(f'checkDeviceConnection: {x}')
 
 list = CubeProgrammer_API.getStLinkList2()

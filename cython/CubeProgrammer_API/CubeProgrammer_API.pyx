@@ -1,4 +1,6 @@
-
+cdef extern from "stddef.h":
+	ctypedef void wchar_t
+	
 cdef extern from "./api/include/CubeProgrammer_API.h":
 	
 	enum debugPort:
@@ -31,24 +33,52 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
 		int shared                         # Select connection type, if it's shared, use ST-LINK Server.
 		char board[100]                    # board Name
 		int DBG_Sleep 
+		
+	cdef struct displayCallBacks:
+		void (*initProgressBar)()                               # Add a progress bar. */
+		void (*logMessage)(int msgType,  const wchar_t* str)    # Display internal messages according to verbosity level. */
+		void (*loadBar)(int x, int n)                           # Display the loading of read/write process. */
 
 	int checkDeviceConnection()
 	int getStLinkList(debugConnectParameters** stLinkList, int shared)
+	void setDisplayCallbacks(displayCallBacks c)
+	void setLoadersPath(const char* path)
+	
+cdef void InitPBar():
+	pass
+	
+cdef void DisplayMessage(int msgType,  const wchar_t* str):
+	pass
+	
+cdef void lBar(int x, int n):
+	pass
+	
+cdef displayCallBacks vsLogMsg	
+cdef char* loaderPath = "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/api/lib/" # reference directory that has ExternalLoader and FlashLoader.
+	
+def init():
+	setLoadersPath(loaderPath)
+
+	vsLogMsg.logMessage = DisplayMessage
+	vsLogMsg.initProgressBar = InitPBar
+	vsLogMsg.loadBar = lBar
+	setDisplayCallbacks(vsLogMsg)
 	
 def checkDeviceConnection2():
 	return checkDeviceConnection()
+
+cdef debugConnectParameters * stLinkList = <debugConnectParameters *>0
 	
 def getStLinkList2():
 	print('getStLinkList2')
-	cdef debugConnectParameters * stLinkList
 	cdef int qty
 	print(f'stLinkList, before: {<unsigned long>stLinkList:X}')
 	qty	= getStLinkList(&stLinkList, 0)
-	print(f'stLinkList, after: {<unsigned long>stLinkList}')
+	print(f'stLinkList, after: {<unsigned long>stLinkList:X}')
 	print(f'qty={qty}')
 	list = []
-	#for i in range(qty):
-	#	list.append(stLinkList[i])
+	for i in range(qty):
+		list.append(stLinkList[i])
 	return list
 	
 	

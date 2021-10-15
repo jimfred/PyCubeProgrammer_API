@@ -150,7 +150,7 @@ int main()
     setDisplayCallbacks(vsLogMsg);
 
     /* Set DLL verbosity level */
-    setVerbosityLevel(verbosityLevel = VERBOSITY_LEVEL_1);
+    //setVerbosityLevel(verbosityLevel = VERBOSITY_LEVEL_1);
 
     ret = Example1();
     //ret = Example2();
