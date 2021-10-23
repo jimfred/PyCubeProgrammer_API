@@ -1,105 +1,177 @@
 cdef extern from "stddef.h":
-	ctypedef void wchar_t
+    ctypedef void wchar_t
 
-	
+from ctypes import c_wchar
+
+# Tell Cython what C constructs we wish to use from this C header file
 cdef extern from "./api/include/CubeProgrammer_API.h":
-	
-	enum debugPort:
-		pass
-		
-	enum debugConnectMode:
-		pass
-		
-	enum debugResetMode:
-		pass
-		
-	struct frequencies:
-		pass
-		
-	# https://cython.readthedocs.io/en/latest/src/userguide/external_C_code.html#styles-of-struct-union-and-enum-declaration
-	cdef struct debugConnectParameters:
-		debugPort dbgPort                  # Select the type of debug interface #debugPort.
-		int index                          # Select one of the debug ports connected.
-		char serialNumber[33]              # ST-LINK serial number.
-		char firmwareVersion[20]           # Firmware version.
-		char targetVoltage[5]              # Operate voltage.
-		int accessPortNumber               # Number of available access port.
-		int accessPort                     # Select access port controller.
-		debugConnectMode connectionMode    # Select the debug CONNECT mode #debugConnectMode.
-		debugResetMode resetMode           # Select the debug RESET mode #debugResetMode.
-		int isOldFirmware                  # Check Old ST-LINK firmware version.
-		frequencies freq                   # Supported frequencies #frequencies.
-		int frequency                      # Select specific frequency.
-		int isBridge                       # Indicates if it's Bridge device or not.
-		int shared                         # Select connection type, if it's shared, use ST-LINK Server.
-		char board[100]                    # board Name
-		int DBG_Sleep 
-		
-	cdef struct displayCallBacks:
-		void (*initProgressBar)()                               # Add a progress bar. */
-		void (*logMessage)(int msgType,  const wchar_t* str)    # Display internal messages according to verbosity level. */
-		void (*loadBar)(int x, int n)                           # Display the loading of read/write process. */
-		
-	cdef struct generalInf:
-		unsigned short deviceId;  # Device ID. */
-		int  flashSize;           # Flash memory size. */
-		int  bootloaderVersion;   # Bootloader version */
-		char type[4];             # Device MCU or MPU. */
-		char cpu[20];             # Cortex CPU. */
-		char name[100];           # Device name. */
-		char series[100];         # Device serie. */
-		char description[150];    # Take notice. */
-		char revisionId[100];     # Revision ID. */
-		char board[100];          # Board Rpn. */
+
+    cdef enum cubeProgrammerError:
+        CUBEPROGRAMMER_NO_ERROR = 0, # Success (no error)
+        CUBEPROGRAMMER_ERROR_NOT_CONNECTED = -1, # Device not connected
+        CUBEPROGRAMMER_ERROR_NO_DEVICE = -2, # Device not found
+        CUBEPROGRAMMER_ERROR_CONNECTION = -3, # Device connection error
+        CUBEPROGRAMMER_ERROR_NO_FILE = -4, # No such file
+        CUBEPROGRAMMER_ERROR_NOT_SUPPORTED = -5, # Operation not supported or unimplemented on this interface
+        CUBEPROGRAMMER_ERROR_INTERFACE_NOT_SUPPORTED = -6, # Interface not supported or unimplemented on this plateform
+        CUBEPROGRAMMER_ERROR_NO_MEM = -7, # Insufficient memory
+        CUBEPROGRAMMER_ERROR_WRONG_PARAM = -8, # Wrong parameters
+        CUBEPROGRAMMER_ERROR_READ_MEM = -9, # Memory read failure
+        CUBEPROGRAMMER_ERROR_WRITE_MEM = -10, # Memory write failure
+        CUBEPROGRAMMER_ERROR_ERASE_MEM = -11, # Memory erase failure
+        CUBEPROGRAMMER_ERROR_UNSUPPORTED_FILE_FORMAT = -12, # File format not supported for this kind of device
+        CUBEPROGRAMMER_ERROR_REFRESH_REQUIRED = -13, # Refresh required
+        CUBEPROGRAMMER_ERROR_NO_SECURITY = -14, # Refresh required
+        CUBEPROGRAMMER_ERROR_CHANGE_FREQ = -15, # Changing frequency problem
+        CUBEPROGRAMMER_ERROR_RDP_ENABLED = -16, # RDP Enabled error
+        CUBEPROGRAMMER_ERROR_OTHER = -99, # Other error
+
+    cdef enum debugConnectMode:
+        NORMAL_MODE = 0,        # Connect with normal mode, the target is reset then halted while the type of reset is selected using the [debugResetMode].
+        HOTPLUG_MODE,           # Connect with hotplug mode,  this option allows the user to connect to the target without halt or reset.
+        UNDER_RESET_MODE,       # Connect with under reset mode, option allows the user to connect to the target using a reset vector catch before executing any instruction.
+        POWER_DOWN_MODE,        # Connect with power down mode.
+        PRE_RESET_MODE          # Connect with pre reset mode.
+
+    cdef enum debugPort:
+        JTAG = 0,
+        SWD = 1,
+        
+    cdef enum debugResetMode:
+        SOFTWARE_RESET,         # Apply a reset by the software.
+        HARDWARE_RESET,         # Apply a reset by the hardware.
+        CORE_RESET              # Apply a reset by the internal core peripheral.
+        
+    cdef struct frequencies:
+        unsigned int jtagFreq[12]           #  JTAG frequency.
+        unsigned int jtagFreqNumber         #  Get JTAG supported frequencies.
+        unsigned int swdFreq[12]            #  SWD frequency.
+        unsigned int swdFreqNumber          #  Get SWD supported frequencies.
+        
+    # https://cython.readthedocs.io/en/latest/src/userguide/external_C_code.html#styles-of-struct-union-and-enum-declaration
+    cdef struct debugConnectParameters:
+        debugPort dbgPort                  # Select the type of debug interface #debugPort.
+        int index                          # Select one of the debug ports connected.
+        char serialNumber[33]              # ST-LINK serial number.
+        char firmwareVersion[20]           # Firmware version.
+        char targetVoltage[5]              # Operate voltage.
+        int accessPortNumber               # Number of available access port.
+        int accessPort                     # Select access port controller.
+        debugConnectMode connectionMode    # Select the debug CONNECT mode #debugConnectMode.
+        debugResetMode resetMode           # Select the debug RESET mode #debugResetMode.
+        int isOldFirmware                  # Check Old ST-LINK firmware version.
+        frequencies freq                   # Supported frequencies #frequencies.
+        int frequency                      # Select specific frequency.
+        int isBridge                       # Indicates if it's Bridge device or not.
+        int shared                         # Select connection type, if it's shared, use ST-LINK Server.
+        char board[100]                    # board Name
+        int DBG_Sleep 
+        
+    cdef struct displayCallBacks:
+        void (*initProgressBar)()                               # Add a progress bar.
+        void (*logMessage)(int msgType,  const wchar_t* str)    # Display internal messages according to verbosity level.
+        void (*loadBar)(int x, int n)                           # Display the loading of read/write process.
+        
+    cdef struct generalInf:
+        unsigned short deviceId;  # Device ID.
+        int  flashSize;           # Flash memory size.
+        int  bootloaderVersion;   # Bootloader version
+        char type[4];             # Device MCU or MPU.
+        char cpu[20];             # Cortex CPU.
+        char name[100];           # Device name.
+        char series[100];         # Device serie.
+        char description[150];    # Take notice.
+        char revisionId[100];     # Revision ID.
+        char board[100];          # Board Rpn.
 
 
-	int api_checkDeviceConnection "checkDeviceConnection" ()
-	int api_getStLinkList "getStLinkList" (debugConnectParameters** stLinkList, int shared)
-	int api_connectStLink "connectStLink" (debugConnectParameters debugParameters)
-	void api_disconnect "disconnect" ()
-	generalInf * api_getDeviceGeneralInf "getDeviceGeneralInf" ()
-	
-	void setDisplayCallbacks(displayCallBacks c)
-	void setLoadersPath(const char* path)
-	
+    int api_checkDeviceConnection "checkDeviceConnection" ()
+    int api_getStLinkList "getStLinkList" (debugConnectParameters** stLinkList, int shared)
+    int api_connectStLink "connectStLink" (debugConnectParameters debugParameters)
+    int api_readMemory "readMemory" (unsigned int address, unsigned char** data, unsigned int size)
+    void api_disconnect "disconnect" ()
+    generalInf * api_getDeviceGeneralInf "getDeviceGeneralInf" ()
+    int api_downloadFile "downloadFile" (const wchar_t* filePath, unsigned int address, unsigned int skipErase, unsigned int verify, const wchar_t* binPath)
+    int api_execute "execute" (unsigned int address)
+    int api_reset "reset" (debugResetMode rstMode)
+    
+    void setDisplayCallbacks(displayCallBacks c)
+    void setLoadersPath(const char* path)
+    
 cdef void InitPBar():
-	pass
-	
+    print('InitPBar')
+
+from cpython.ref cimport PyObject
+cdef extern from "Python.h":
+    PyObject* PyUnicode_FromWideChar(wchar_t *w, Py_ssize_t size)
+    wchar_t* PyUnicode_AsWideCharString(object, Py_ssize_t*) except NULL
+
 cdef void DisplayMessage(int msgType,  const wchar_t* str):
-	pass
-	
+    s = <object>PyUnicode_FromWideChar(str, -1)  # https://stackoverflow.com/a/16526775/101252
+    print(f'msgType: {msgType}, {s}')
+    
 cdef void lBar(int x, int n):
-	pass
-	
-cdef displayCallBacks vsLogMsg	
+    print(f'lBar, x: {x}, n: {n}')
+
+# Globals
+cdef displayCallBacks display_cb_struct = displayCallBacks(logMessage = DisplayMessage, initProgressBar = InitPBar, loadBar = lBar)
 cdef char* loaderPath = "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/api/lib/" # reference directory that has ExternalLoader and FlashLoader.
-	
-def init():
-	setLoadersPath(loaderPath)
-
-	vsLogMsg.logMessage = DisplayMessage
-	vsLogMsg.initProgressBar = InitPBar
-	vsLogMsg.loadBar = lBar
-	setDisplayCallbacks(vsLogMsg)
-	
-def checkDeviceConnection():
-	return api_checkDeviceConnection()
-
 cdef debugConnectParameters * stLinkList = <debugConnectParameters *>0
-	
+cdef int stLinkListLen
+
+def init():
+    global loaderPath
+    setLoadersPath(loaderPath)
+
+    global display_cb_struct
+    setDisplayCallbacks(display_cb_struct)
+    
+def checkDeviceConnection():
+    return api_checkDeviceConnection()
+
+
 def getStLinkList():
-	cdef int qty = api_getStLinkList(&stLinkList, 0)
-	return [stLinkList[i] for i in range(qty)]
-	
-def connectStLink():
-	cdef int x = api_connectStLink(stLinkList[0]) # hack: connect to first item in list.
-	return x
-	
+    global stLinkList
+    global stLinkListLen
+    stLinkListLen = api_getStLinkList(&stLinkList, 0)
+    print(f'len: {stLinkListLen}')
+    return [stLinkList[i] for i in range(stLinkListLen)]
+    
+cpdef int connectStLink(int index=0):
+    global stLinkListLen
+    if index >= stLinkListLen:
+        return -1
+    cdef int err = api_connectStLink(stLinkList[index])
+    return err
+
+cpdef bytearray readMemory(unsigned int address, unsigned int size):
+    cdef unsigned char * data
+    cdef int err = api_readMemory(address, &data, size)
+    if err:
+        return None
+    bytes = bytearray()
+    for i in range(size):
+        bytes.append(data[i])
+    return bytes
+
 def disconnect():
-	api_disconnect()
-	
+    api_disconnect()
+    
 def getDeviceGeneralInf():
-	cdef generalInf * p_general_inf = <generalInf *>0
-	p_general_inf = api_getDeviceGeneralInf()
-	return p_general_inf[0]
-	
+    cdef generalInf * p_general_inf = <generalInf *>0
+    p_general_inf = api_getDeviceGeneralInf()
+    return p_general_inf[0]
+
+def downloadFile(filePath, unsigned int address=0x08000000, unsigned int skipErase=0, unsigned int verify=1, binPath=''):
+    cdef wchar_t* wfilePath = PyUnicode_AsWideCharString(filePath, NULL)
+    cdef wchar_t* wbinPath = PyUnicode_AsWideCharString(binPath, NULL)
+    print(f'downloadFile, filePath: {filePath}, address: {address}, skipErase: {skipErase}, verify: {verify}')
+    return api_downloadFile(wfilePath, address, skipErase, verify, wbinPath)
+
+def reset(debugResetMode rstMode):
+    return api_reset(rstMode)
+
+def execute(unsigned int address):
+    return api_execute(address)
+
+    
