@@ -1,42 +1,75 @@
-import os
-os.add_dll_directory(r'C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\api\lib')  # Path to DLLs. https://stackoverflow.com/a/67437837/101252
-import CubeProgrammer_API 
 
-CubeProgrammer_API.init()
+api_dll_and_loader_path = 'C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/api/lib/'  # Directory containing DLLs, ExternalLoader and FlashLoader.
+import os  # noqa: E402
+os.add_dll_directory(api_dll_and_loader_path)  # Path to DLLs before importing CubeProgrammer_API. https://stackoverflow.com/a/67437837/101252
+# noinspection PyUnresolvedReferences
+import CubeProgrammer_API  # noqa: E402
 
-x = CubeProgrammer_API.checkDeviceConnection()
-print(f'checkDeviceConnection: {x}')
 
-list = CubeProgrammer_API.getStLinkList()
+def init_progress_bar():
+	print(f'InitProgressBar')
+
+
+def log_message(msgType : int,  str):
+	if msgType < 22:
+		# print(f'{msgType}, {str}')
+		print(f'{str}')
+
+
+def load_bar(curr_progress: int, total: int):
+	print(f'{100 * curr_progress / total}%')
+
+
+api = CubeProgrammer_API.CubeProgrammer_API()
+
+api.setDisplayCallbacks(
+	initProgressBar=init_progress_bar,
+	logMessage=log_message,
+	loadBar=load_bar)
+
+api.setLoadersPath(api_dll_and_loader_path)
+
+
+def check_connection():
+	x = api.checkDeviceConnection()
+	str = 'Connected' if 1==x else 'Not connected'
+	print(f'checkDeviceConnection: {str}')
+
+
+check_connection()
+
+list = api.getStLinkList()
 print(f'list: {list}')
 
-if (len(list) == 1):
-	x = CubeProgrammer_API.connectStLink()  # 0)
-	print('connect ok' if x == 0 else f'connect error {x}')
-	
-	x = CubeProgrammer_API.checkDeviceConnection()
-	print(f'checkDeviceConnection: {x}')
+if len(list) == 1:
+	x = api.connectStLink()
+	if x < 0:
+		api.disconnect()
+		quit()
 
-	genInfo = CubeProgrammer_API.getDeviceGeneralInf()
+	check_connection()
+
+	genInfo = api.getDeviceGeneralInf()
 	print(f'genInfo: {genInfo}')
 
-	resetFlag = CubeProgrammer_API.reset(0)
+	resetFlag = api.reset(0)
 
 	if resetFlag != 0:
-		CubeProgrammer_API.disconnect()
+		api.disconnect()
 		quit()
 
-	isVerify = 1  # add verification step
-	isSkipErase = 0  # no skip erase
-	filePath = r'C:\Users\james.frederick\src\uctq_Sandbox\E102878-Qx\QuadRfDriverFirmware\Debug\QuadRfDriverFirmware.elf'
-	downloadFileFlag = CubeProgrammer_API.downloadFile(filePath)  #, 0x08000000, isSkipErase, isVerify, "")
-	if downloadFileFlag != 0:
-		CubeProgrammer_API.disconnect()
-		quit()
+	if False:  # switch to enable downloads.
+		isVerify = 1  # add verification step
+		isSkipErase = 0  # no skip erase
+		filePath = r'C:\Users\james.frederick\src\uctq_Sandbox\E102878-Qx\QuadRfDriverFirmware\Debug\QuadRfDriverFirmware.elf'
+		downloadFileFlag = api.downloadFile(filePath)  #, 0x08000000, isSkipErase, isVerify, "")
+		if downloadFileFlag != 0:
+			api.disconnect()
+			quit()
 
 	size = 64
 	startAddress = 0x08000000
-	data = CubeProgrammer_API.readMemory(address=startAddress, size=size)
+	data = api.readMemory(address=startAddress, size=size)
 
 	print(f'data: {data}')
 
@@ -56,12 +89,12 @@ if (len(list) == 1):
 	print()
 
 	# Run application
-	executeFlag = CubeProgrammer_API.execute(0x08000000)
+	executeFlag = api.execute()
 	if executeFlag != 0:
-		CubeProgrammer_API.disconnect()
+		api.disconnect()
 		quit()
 
-	CubeProgrammer_API.disconnect()
+	api.disconnect()
 
 
 # input("Press Enter to continue...") # pause to see result

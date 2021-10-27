@@ -12,9 +12,14 @@ extensions = [
 ]
 setup(
 	name="CubeProgrammer_API",
-	version = '0.1',
-	description = 'CubeProgrammer_API.py',
-	author = 'Jim Fred',
-	author_email = 'jimfred@jimfred.org',
-	ext_modules=cythonize(extensions, compiler_directives={'language_level' : "3"}), requires=['Cython'] 
+	version='0.1',
+	description='CubeProgrammer_API.py',
+	author='Jim Fred',
+	author_email='jimfred@jimfred.org',
+	ext_modules=cythonize(extensions,
+	compiler_directives={
+		'language_level': "3",
+		'always_allow_keywords': True  # https://github.com/cython/cython/issues/2881
+	}),
+	requires=['Cython']
 )
