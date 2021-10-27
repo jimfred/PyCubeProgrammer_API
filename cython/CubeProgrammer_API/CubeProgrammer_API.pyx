@@ -110,6 +110,21 @@ cdef extern from "./api/include/CubeProgrammer_API.h":
 
 
 cdef class CubeProgrammer_API:
+    cdef int c_stlink_connected
+    cdef int c_device_connected
+    py_stlink_list: []
+
+    @property
+    def stlink_list(self):
+        return self.py_stlink_list
+
+    @property
+    def stlink_connected(self):
+        return self.c_stlink_connected != 0
+
+    @property
+    def device_connected(self):
+        return self.c_device_connected != 0
 
     def __init__(self):
         cdef const char* path = "./"
@@ -117,6 +132,10 @@ cdef class CubeProgrammer_API:
 
         global display_cb_struct
         api_setDisplayCallbacks(display_cb_struct)
+
+        self.c_stlink_connected = False
+        self.c_device_connected = False
+        self.py_stlink_list = None
 
     def setDisplayCallbacks(self, initProgressBar, logMessage, loadBar):
         global py_cb_InitProgressBar, py_cb_LogMessage, py_cb_LoadBar
@@ -136,14 +155,12 @@ cdef class CubeProgrammer_API:
 
     def getStLinkList(self):
         global stLinkList
-        global stLinkListLen
         stLinkListLen = api_getStLinkList(&stLinkList, 0)
-        # print(f'len: {stLinkListLen}')
-        return [stLinkList[i] for i in range(stLinkListLen)]
+        self.py_stlink_list = [stLinkList[i] for i in range(stLinkListLen)]
+        return self.py_stlink_list
 
     def connectStLink(self, int index=0) -> int :
-        global stLinkListLen
-        if index >= stLinkListLen:
+        if index >= len(self.py_stlink_list):
             return -1
         # print(stLinkList[index])
         if 0 == stLinkList[index].accessPortNumber:  # assume this is an indication that the ST-Link is disconnected from the target.
@@ -186,6 +203,24 @@ cdef class CubeProgrammer_API:
         global default_log_message_verbosity
         default_log_message_verbosity = val
 
+    def connection_update(self):
+
+        self.c_device_connected = 1 == self.checkDeviceConnection()
+
+        if not self.c_device_connected:
+            self.disconnect()
+            self.py_stlink_list = None
+            self.c_stlink_connected = False
+
+        if self.py_stlink_list is None:
+            self.getStLinkList()
+            self.c_stlink_connected = len(self.py_stlink_list) > 0
+
+        if len(self.py_stlink_list) == 1 and not self.c_device_connected:
+            self.connectStLink()
+
+        self.c_device_connected = 1 == self.checkDeviceConnection()
+
 
 @staticmethod
 cdef void c_cb_InitProgressBar():
@@ -223,7 +258,6 @@ cdef void c_cb_LoadBar(int x, int n):
 # Globals
 cdef displayCallBacks display_cb_struct = displayCallBacks(logMessage = c_cb_LogMessage, initProgressBar = c_cb_InitProgressBar, loadBar = c_cb_LoadBar)
 cdef debugConnectParameters * stLinkList = <debugConnectParameters *>0
-cdef int stLinkListLen
 cdef object py_cb_InitProgressBar = None
 cdef object py_cb_LogMessage = None
 cdef object py_cb_LoadBar = None
