@@ -138,17 +138,18 @@ cdef class CubeProgrammer_API:
         global stLinkList
         global stLinkListLen
         stLinkListLen = api_getStLinkList(&stLinkList, 0)
-        print(f'len: {stLinkListLen}')
+        # print(f'len: {stLinkListLen}')
         return [stLinkList[i] for i in range(stLinkListLen)]
 
-    def connectStLink(self, unsigned int index=0) -> int :
+    def connectStLink(self, int index=0) -> int :
         global stLinkListLen
         if index >= stLinkListLen:
             return -1
+        # print(stLinkList[index])
         if 0 == stLinkList[index].accessPortNumber:  # assume this is an indication that the ST-Link is disconnected from the target.
             return -1
         cdef int err = api_connectStLink(stLinkList[index])
-        print(f'connectStLink: {err}')
+        # print(f'connectStLink: {err}')
         return err
 
     def readMemory(self, unsigned int address, unsigned int size) -> bytearray:
@@ -172,7 +173,7 @@ cdef class CubeProgrammer_API:
     def downloadFile(self, filePath, unsigned int address=0x08000000, unsigned int skipErase=0, unsigned int verify=1, binPath=''):
         cdef wchar_t* wfilePath = PyUnicode_AsWideCharString(filePath, NULL)
         cdef wchar_t* wbinPath = PyUnicode_AsWideCharString(binPath, NULL)
-        print(f'downloadFile, filePath: {filePath}, address: {address}, skipErase: {skipErase}, verify: {verify}')
+        # print(f'downloadFile, filePath: {filePath}, address: {address}, skipErase: {skipErase}, verify: {verify}')
         return api_downloadFile(wfilePath, address, skipErase, verify, wbinPath)
 
     def reset(self, debugResetMode rstMode):
@@ -180,6 +181,11 @@ cdef class CubeProgrammer_API:
 
     def execute(self, unsigned int address=0x08000000):
         return api_execute(address)
+
+    def set_default_log_message_verbosity(self, val):
+        global default_log_message_verbosity
+        default_log_message_verbosity = val
+
 
 @staticmethod
 cdef void c_cb_InitProgressBar():
@@ -199,7 +205,9 @@ cdef void c_cb_LogMessage(int msgType,  const wchar_t* str):
     if py_cb_LogMessage is not None:
         (<object>py_cb_LogMessage)(msgType, s)
     else:
-        print(f'msgType: {msgType}, {s}')
+        global default_log_message_verbosity
+        if default_log_message_verbosity > msgType:
+            print(f'msgType: {msgType}, {s}')
 
 @staticmethod
 cdef void c_cb_LoadBar(int x, int n):
@@ -219,6 +227,7 @@ cdef int stLinkListLen
 cdef object py_cb_InitProgressBar = None
 cdef object py_cb_LogMessage = None
 cdef object py_cb_LoadBar = None
+cdef int default_log_message_verbosity = 3
 
 
 
