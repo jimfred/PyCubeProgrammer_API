@@ -1,17 +1,17 @@
 # PyCubeProgrammer_API
 This is a Python wrapper for STM32 CubeProgrammer_API. It uses Cython, resulting in a .pyd python-DLL file that is imported by a user's Python program.
 
-```mermaid
+<!--
+mermaid
   graph TD;
 		subgraph Windows
-			userPython[user Python] --> PyCubeProgrammer_API[PyCubeProgrammer_API];
-			PyCubeProgrammer_API --> CubeProgrammer_API;
-	  CubeProgrammer_API --> ST-LinkDrivers[ST-Link Drivers];
+			userPython[user Python] - -> PyCubeProgrammer_API[PyCubeProgrammer_API];
+			PyCubeProgrammer_API - -> CubeProgrammer_API;
+	  CubeProgrammer_API - -> ST-LinkDrivers[ST-Link Drivers];
 		end
-      ST-LinkDrivers -->|USB| STLink
-	  STLink -->|SWD| STM32[STM32 MicroController]
-     
-```
+      ST-LinkDrivers - ->|USB| STLink
+	  STLink - ->|SWD| STM32[STM32 MicroController]
+-->
 
 The STM32 CubeProgrammer_API is a C-library, created by ST for ST-Link access to micro-controllers for the purpose of flash downloads or general memory access. The CubeProgrammer is required, including its drivers, and can be downloaded from st.com and installed.
 
