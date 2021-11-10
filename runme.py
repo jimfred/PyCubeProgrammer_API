@@ -69,7 +69,7 @@ if len(list) == 1:
 
 	size = 64
 	startAddress = 0x08000000
-	data = api.readMemory(address=startAddress, size=size)
+	data = api.readMemory(address=startAddress, byte_qty=size)
 
 	print(f'data: {data}')
 
@@ -81,9 +81,12 @@ if len(list) == 1:
 
 	while i < size:
 		col = 0
-		print(f'\n0x{startAddress + i:08X} :', end="")
+		print(f'\n@0x{startAddress + i:08X}:', end="")
 		while (col < 4) and (i < size):
-			print(f' {data[i+3]:02X}{data[i+2]:02X}{data[i+1]:02X}{data[i]:02X} ', end="")
+			# print(f' {data[i+3]:02X}{data[i+2]:02X}{data[i+1]:02X}{data[i]:02X} ', end="")
+			u32 = int.from_bytes(data[i:i + 4], byteorder='little', signed=False)
+			print(f' {u32:08X} ', end="")
+
 			col += 1
 			i += 4
 	print()
