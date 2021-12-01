@@ -14,6 +14,18 @@ Two examples are included:
 ## Installation
 copy CubeProgrammer_API.cp39-win_amd64.pyd locally. It's assumed that CubeProgrammer has been installed (`C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/api/lib/`) and has all the necessary DLLs required by the CubeProgrammer_API .pyd file. See the top of the examples for code to reference the location of those DLLs.
 
+## Usage
+In a Python application, reference the API's DLLs with a statement like...<br>
+```os.add_dll_directory('C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/api/lib/')```
+<br>The `os` will, of course need an `import os`
+
+Then import the .PYD extension like this...
+`import CubeProgrammer_API`
+The import needs to be done after the `add_dll_directory()`.
+
+This Cython/Python wrapper performs default initialization that the C-API omitted such as initialization of callbacks. This default initialization will prevent faults/exceptions that halt/crash the application without diagnostic information.
+
+
 ## Development
 - setup.py and run_setup.py are used to compile the Cython .pyx file to a .dll with the .pyd extension.
 - CppExample is a Visual Studio project that uses the CubeProgrammer_API, used only to isolate C-vs-Python issues.
@@ -23,6 +35,8 @@ copy CubeProgrammer_API.cp39-win_amd64.pyd locally. It's assumed that CubeProgra
 - pyOCD
 - PyStLink
 - OpenOcd
+
+Although there are several other libraries that provide debug interfaces to ARM micro-controllers, some with Python bindings, this PyCubeProgrammer_API is intended to leverage ST's support for driver installation and support for new chip variants.
 
 
 
