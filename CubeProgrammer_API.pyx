@@ -1,10 +1,13 @@
+"""
+Define thin Python wrapper for CubeProgrammer_API using Cython.
+This generates a .PYD python extension.
+Members added to read and write symbols e.g., floats etc.
+"""
+
 import struct
-import ctypes
 
 cdef extern from "stddef.h":
     ctypedef void wchar_t
-
-# from ctypes import c_wchar
 
 from cpython.ref cimport PyObject
 cdef extern from "Python.h":
@@ -229,16 +232,6 @@ cdef class CubeProgrammer_API:
 
         self.c_device_connected = 1 == self.checkDeviceConnection()
 
-    '''
-    convert raw hex from ST-Link to a float.
-    e.g., 0x7f100000 becomes 1.9
-    '''
-    @staticmethod
-    cdef float convert_to_float(unsigned int val):
-        cp = ctypes.pointer(ctypes.c_int(val))  # make this into a c integer
-        fp = ctypes.cast(cp, ctypes.POINTER(ctypes.c_float))  # cast the int pointer to a float pointer
-        return fp.contents.value  # dereference the pointer, get the float
-
     def read_u8(self, adr_arg):
         cdef unsigned char * bytes
         cdef int err = api_readMemory(adr_arg, &bytes, 1)
@@ -249,37 +242,38 @@ cdef class CubeProgrammer_API:
         cdef int err = api_readMemory(adr_arg, &bytes, 2)
         return None if err else int.from_bytes(bytes[0:2], byteorder='little', signed=False)
 
-
     def read_u32(self, adr_arg):
         cdef unsigned char * bytes
         cdef int err = api_readMemory(adr_arg, &bytes, 4)
         return None if err else int.from_bytes(bytes[0:4], byteorder='little', signed=False)
 
+    def write_u8(self, adr_arg, val_arg: int):
+        cdef unsigned char[4] bytes = int.to_bytes(val_arg, length=4, byteorder='little', signed=False)
+        # <char*> cast required because writeMemory takes a char which is inconsistent with readMemory that takes unsigned char.
+        cdef int err = api_writeMemory(adr_arg, <char*>&bytes[0], 1)
+
     def write_u16(self, adr_arg, val_arg: int):
-        cdef char[4] bytes = int.to_bytes(val_arg, length=4, byteorder='little', signed=False)
-        print(f'{val_arg:08X}, {bytes}, {len(bytes)}, {bytes[3]:02X}, {bytes[2]:02X}, {bytes[1]:02X}, {bytes[0]:02X}')
-        cdef int err = api_writeMemory(adr_arg, &bytes[0], 2)
-        ## print(f'err {err}')
+        cdef unsigned char[4] bytes = int.to_bytes(val_arg, length=4, byteorder='little', signed=False)
+        # <char*> cast required because writeMemory takes a char which is inconsistent with readMemory that takes unsigned char.
+        cdef int err = api_writeMemory(adr_arg, <char*>&bytes[0], 2)
 
     def write_u32(self, adr_arg, val_arg):
-        cdef char[4] bytes = int.to_bytes(val_arg, length=4, byteorder='little', signed=False)
-        cdef int err = api_writeMemory(adr_arg, &bytes[0], 4)
+        cdef unsigned char[4] bytes = int.to_bytes(val_arg, length=4, byteorder='little', signed=False)
+        cdef int err = api_writeMemory(adr_arg, <char*>&bytes[0], 4)
 
     def read_str(self, adr_arg, char_qty):
         cdef unsigned char * bytes
         cdef int err = api_readMemory(adr_arg, &bytes, char_qty)
-        return None if err else bytes.decode('utf-8')
+        return None if err else bytes.decode('iso-8859-1')  # 'utf-8')
 
-    '''
-    Read float, single-precision, 4-bytes.
-    '''
     def read_f32(self, adr_arg):
+        """
+        Read float, single-precision, 4-bytes.
+        """
         cdef unsigned char * bytes
         cdef int err = api_readMemory(adr_arg, &bytes, 4)
-        if err != 0:
-            return None
-        f = struct.unpack('<f', bytes[0:4])[0] # '<f' is little endian
-        return f
+        return None if err else struct.unpack('<f', bytes[0:4])[0] # '<f' is little endian
+
 
 @staticmethod
 cdef void c_cb_InitProgressBar():
